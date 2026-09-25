@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Beranda{% endblock %}
+
+{% block content %}
+<section class="home-hero" aria-labelledby="hero-title">
+  <div class="home-hero-copy">
+    <span class="eyebrow"><span class="eyebrow-dot"></span> WASTE INTELLIGENCE FOR RETAIL</span>
+    <h1 id="hero-title">Kenali risiko stok <span>sebelum menjadi limbah.</span></h1>
+    <p class="hero-description">WISE AI membantu tim retail membaca data stok dan penjualan, menemukan produk yang perlu perhatian, lalu meninjau rekomendasi tindakan dalam satu tempat.</p>
+    <div class="hero-actions">
+      {% if config.AUTH_REQUIRED and not g.user %}
+      <a href="{{ url_for('signup') }}" class="btn btn-primary">Sign up <span aria-hidden="true">↗</span></a>
+      <a href="{{ url_for('login') }}" class="btn btn-outline-primary">Sign in</a>
+      {% else %}
+      <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Buka dashboard <span aria-hidden="true">↗</span></a>
+      {% if not config.AUTH_REQUIRED or g.user.role == 'admin' %}<a href="{{ url_for('upload') }}" class="btn btn-outline-primary">Import data stok</a>{% endif %}
+      {% endif %}
+    </div>
+    <p class="hero-note">{% if config.AUTH_REQUIRED and not g.user %}Kenali cara kerja WISE AI di sini. Akses data cabang diberikan setelah pendaftaran disetujui admin.{% else %}Mulai dengan dataset contoh, lalu gunakan data Anda sendiri melalui halaman Import data.{% endif %}</p>
+  </div>
+  <div class="hero-visual" aria-label="Alur kerja WISE AI: data, prediksi, dan tindakan">
+    <div class="visual-label">DARI DATA KE KEPUTUSAN</div>
+    <div class="flow-step"><span class="flow-number">01</span><div><strong>Data stok</strong><small>Stok, penjualan, dan masa berlaku</small></div><span class="flow-icon" aria-hidden="true">▦</span></div>
+    <div class="flow-connector" aria-hidden="true"></div>
+    <div class="flow-step"><span class="flow-number">02</span><div><strong>Prediksi risiko</strong><small>Probabilitas dan tingkat prioritas</small></div><span class="flow-icon" aria-hidden="true">◉</span></div>
+    <div class="flow-connector" aria-hidden="true"></div>
+    <div class="flow-step"><span class="flow-number">03</span><div><strong>Rekomendasi</strong><small>Diskon, redistribusi, atau donasi</small></div><span class="flow-icon" aria-hidden="true">↗</span></div>
+    <div class="visual-footnote">Rekomendasi membantu peninjauan. Tindakan tetap diputuskan oleh tim Anda.</div>
+  </div>
+</section>
+
+<section class="feature-section" aria-labelledby="feature-title">
+  <div class="section-heading">
+    <div><span class="eyebrow">APA YANG BISA DILAKUKAN</span><h2 id="feature-title">Satu alur untuk memantau produk berisiko.</h2></div>
+    <p>Informasi penting disajikan agar tim dapat menentukan prioritas dari data yang tersedia.</p>
+  </div>
+  <div class="feature-grid">
+    <article class="feature-card"><span class="feature-icon" aria-hidden="true">01</span><h3>Prediksi per produk</h3><p>Lihat probabilitas dan kategori risiko food waste dari model berdasarkan data stok dan penjualan.</p></article>
+    <article class="feature-card"><span class="feature-icon" aria-hidden="true">02</span><h3>Rekomendasi tindakan</h3><p>Tinjau saran diskon, redistribusi, atau donasi yang dihasilkan dari aturan bisnis awal.</p></article>
+    <article class="feature-card"><span class="feature-icon" aria-hidden="true">03</span><h3>Prioritas &amp; analitik</h3><p>Pantau produk mendekati kedaluwarsa serta perbandingan risiko menurut cabang dan kategori.</p></article>
+    <article class="feature-card"><span class="feature-icon" aria-hidden="true">04</span><h3>Data yang bisa diganti</h3><p>Import CSV atau XLSX, simpan riwayat analisis, dan unduh hasil untuk ditinjau lebih lanjut.</p></article>
+  </div>
+</section>
+
+<section class="demo-section" aria-labelledby="demo-title">
+  <div class="demo-intro">
+    <span class="eyebrow">COBA PREDIKSI</span>
+    <h2 id="demo-title">Periksa satu produk.</h2>
+    <p>Masukkan delapan nilai yang digunakan model. Hasilnya menampilkan estimasi probabilitas food waste dan kategori risikonya.</p>
+    <div class="demo-guidance"><strong>Cara membaca hasil</strong><p>Semakin tinggi probabilitas, semakin besar prioritas produk untuk ditinjau. Hasil prediksi bukan kepastian bahwa produk akan terbuang.</p></div>
+  </div>
+  <div class="card demo-card">
+    <div class="demo-card-header"><h3>Quick demo</h3><span>Semua kolom wajib diisi</span></div>
+    <form id="singlePredictForm" class="demo-form">
+      <div class="form-grid">
+        <div><label for="initial-stock" class="form-label">Stok awal</label><input id="initial-stock" type="number" min="0" step="1" class="form-control" name="Initial_Stock" required></div>
+        <div><label for="sold-quantity" class="form-label">Jumlah terjual</label><input id="sold-quantity" type="number" min="0" step="1" class="form-control" name="Sold_Quantity" required></div>
+        <div><label for="remaining-stock" class="form-label">Sisa stok</label><input id="remaining-stock" type="number" min="0" step="1" class="form-control" name="Remaining_Stock" required></div>
+        <div><label for="expiry-days" class="form-label">Sisa hari berlaku</label><input id="expiry-days" type="number" min="0" step="1" class="form-control" name="Expiry_Days_Left" required></div>
+        <div><label for="product-price" class="form-label">Harga produk</label><input id="product-price" type="number" min="0" step="any" class="form-control" name="Price" required></div>
+        <div><label for="discount" class="form-label">Diskon diterapkan (%)</label><input id="discount" type="number" min="0" max="100" step="any" class="form-control" name="Discount_Applied" value="0" required></div>
+        <div><label for="temperature" class="form-label">Suhu (°C)</label><input id="temperature" type="number" step="any" class="form-control" name="Temperature_(°C)" required></div>
+        <div><label for="avg-sales" class="form-label">Rata-rata penjualan historis</label><input id="avg-sales" type="number" min="0" step="any" class="form-control" name="Historical_Avg_Sales" required></div>
+      </div>
+      <button type="submit" class="btn btn-primary demo-submit">Prediksi risiko <span aria-hidden="true">↗</span></button>
+      <div id="singlePredictResult" class="alert mt-3 d-none" role="status" aria-live="polite"></div>
+    </form>
+  </div>
+</section>
+{% endblock %}

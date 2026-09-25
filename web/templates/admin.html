@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+{% block content %}
+<div class="page-heading admin-heading"><span class="eyebrow">PENGELOLAAN SISTEM</span><h1>Panel admin</h1><p>Kelola akun dan pantau aktivitas data WISE AI.</p></div>
+{% if saved %}<div class="alert alert-success" role="status">Akun berhasil disimpan.</div>{% endif %}
+{% if request.args.get('reviewed') %}<div class="alert alert-success" role="status">Pendaftaran berhasil ditinjau.</div>{% endif %}
+{% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+<div class="admin-stats">
+  <div class="card summary-tile"><span>Akun terdaftar</span><strong>{{ users|length }}</strong><small>Admin dan petugas cabang</small></div>
+  <div class="card summary-tile"><span>Batch aktif</span><strong>{{ '#' ~ active_import.id if active_import else '—' }}</strong><small>{{ active_import.row_count ~ ' produk' if active_import else 'Belum ada impor' }}</small></div>
+  <div class="card summary-tile"><span>Evaluasi tersimpan</span><strong>{{ evaluations|length }}</strong><small>Hingga 5 evaluasi terbaru ditampilkan</small></div>
+</div>
+<div class="admin-actions"><a class="btn btn-primary" href="{{ url_for('upload') }}">Import data</a><a class="btn btn-outline-primary" href="{{ url_for('model_monitoring') }}">Lihat pemantauan model</a><a class="btn btn-outline-primary" href="{{ url_for('dashboard') }}">Buka dashboard</a></div>
+<section class="card detail-panel admin-activity" aria-labelledby="signup-title">
+  <span class="eyebrow">PERSETUJUAN AKUN</span><h2 id="signup-title">Pendaftaran menunggu tinjauan ({{ signup_requests|length }})</h2>
+  <p>Pastikan cabang pendaftar sesuai dengan data dan orangnya berwenang sebelum menyetujui.</p>
+  {% if signup_requests %}<div class="table-responsive"><table class="table"><thead><tr><th>Username</th><th>Cabang diminta</th><th>Waktu (UTC)</th><th>Tindakan</th></tr></thead><tbody>
+  {% for item in signup_requests %}<tr><td>{{ item.username }}</td><td>{{ item.branch }}</td><td>{{ item.created_at }}</td><td><div class="admin-review-actions">
+    <form action="{{ url_for('admin_resolve_signup', request_id=item.id) }}" method="post"><input type="hidden" name="review_token" value="{{ review_token }}"><input type="hidden" name="decision" value="approve"><button class="btn btn-primary btn-sm" type="submit">Setujui</button></form>
+    <form action="{{ url_for('admin_resolve_signup', request_id=item.id) }}" method="post"><input type="hidden" name="review_token" value="{{ review_token }}"><input type="hidden" name="decision" value="reject"><button class="btn btn-outline-secondary btn-sm" type="submit">Tolak</button></form>
+  </div></td></tr>{% endfor %}</tbody></table></div>{% else %}<p>Belum ada pendaftaran baru.</p>{% endif %}
+</section>
+<div class="admin-grid">
+  <section class="card detail-panel" aria-labelledby="account-title"><span class="eyebrow">AKSES PENGGUNA</span><h2 id="account-title">Buat atau perbarui akun</h2><p class="admin-helper">Gunakan username yang sama untuk mengganti password atau peran akun. Nama cabang harus sesuai persis dengan kolom Branch pada data impor.</p>
+    <form action="{{ url_for('admin_save_user') }}" method="post" class="admin-user-form">
+      <input type="hidden" name="review_token" value="{{ review_token }}">
+      <div><label class="form-label" for="admin-username">Username</label><input class="form-control" id="admin-username" name="username" minlength="3" maxlength="80" pattern="[A-Za-z0-9_.-]+" autocomplete="off" required></div>
+      <div><label class="form-label" for="admin-role">Peran</label><select class="form-select" id="admin-role" name="role" required><option value="branch">Petugas cabang</option><option value="admin">Admin</option></select></div>
+      <div><label class="form-label" for="admin-branch">Cabang (untuk petugas)</label><input class="form-control" id="admin-branch" name="branch" maxlength="120" placeholder="Contoh: Jakarta"></div>
+      <div><label class="form-label" for="admin-password">Password baru</label><input class="form-control" id="admin-password" name="password" type="password" minlength="12" maxlength="1024" autocomplete="new-password" required></div>
+      <button class="btn btn-primary" type="submit">Simpan akun</button>
+    </form>
+  </section>
+  <section class="card detail-panel" aria-labelledby="users-title"><span class="eyebrow">AKUN SAAT INI</span><h2 id="users-title">Daftar pengguna</h2><div class="table-responsive"><table class="table"><thead><tr><th>Username</th><th>Peran</th><th>Cabang</th></tr></thead><tbody>{% for user in users %}<tr><td>{{ user.username }}</td><td>{{ 'Admin' if user.role == 'admin' else 'Petugas cabang' }}</td><td>{{ user.branch or 'Semua cabang' }}</td></tr>{% endfor %}</tbody></table></div></section>
+</div>
+<section class="card detail-panel admin-activity"><span class="eyebrow">AKTIVITAS DATA</span><h2>Impor terbaru</h2>{% if imports %}<div class="table-responsive"><table class="table"><thead><tr><th>Batch</th><th>File</th><th>Waktu (UTC)</th><th>Produk</th></tr></thead><tbody>{% for item in imports %}<tr><td>#{{ item.id }}</td><td>{{ item.filename }}</td><td>{{ item.imported_at }}</td><td>{{ item.row_count }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<p>Belum ada data yang diimpor.</p>{% endif %}</section>
+{% endblock %}

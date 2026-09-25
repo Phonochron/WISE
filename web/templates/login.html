@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Masuk{% endblock %}
+{% block content %}
+<div class="login-wrap card detail-panel">
+  <span class="eyebrow">AKSES OPERASIONAL</span>
+  <h1>Masuk ke WISE AI</h1>
+  <p>Masuk dengan akun yang sudah disetujui admin. Setelah masuk, Anda dapat mengganti password melalui menu Akun.</p>
+  {% if request.args.get('registered') %}<div class="alert alert-success" role="status">Pendaftaran diterima. Tunggu persetujuan admin sebelum masuk.</div>{% endif %}
+  {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+  <form method="post" action="{{ url_for('login') }}">
+    <input type="hidden" name="login_token" value="{{ login_token }}">
+    <label class="form-label" for="username">Username</label>
+    <input class="form-control" id="username" name="username" maxlength="80" autocomplete="username" required>
+    <label class="form-label mt-3" for="password">Password</label>
+    <input class="form-control" id="password" name="password" type="password" autocomplete="current-password" required>
+    <button class="btn btn-primary mt-4" type="submit">Masuk</button>
+  </form>
+  <p class="mt-4 mb-0">Belum punya akun? <a href="{{ url_for('signup') }}">Sign up</a></p>
+</div>
+{% endblock %}

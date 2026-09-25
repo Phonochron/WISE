@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Sign up{% endblock %}
+{% block content %}
+<div class="login-wrap card detail-panel">
+  <span class="eyebrow">AKSES CABANG</span>
+  <h1>Sign up</h1>
+  <p>Buat akun petugas cabang. Admin akan memeriksa cabang Anda sebelum akun dapat digunakan.</p>
+  {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+  <form method="post" action="{{ url_for('signup') }}">
+    <input type="hidden" name="signup_token" value="{{ signup_token }}">
+    <label class="form-label" for="signup-username">Username</label>
+    <input class="form-control" id="signup-username" name="username" minlength="3" maxlength="80" pattern="[A-Za-z0-9_.-]+" autocomplete="username" required>
+    <label class="form-label mt-3" for="signup-branch">Cabang kerja</label>
+    <input class="form-control" id="signup-branch" name="branch" maxlength="120" placeholder="Sesuai nama cabang di WISE AI" required>
+    <label class="form-label mt-3" for="signup-password">Password</label>
+    <input class="form-control" id="signup-password" name="password" type="password" minlength="12" maxlength="1024" autocomplete="new-password" required>
+    <label class="form-label mt-3" for="signup-confirm">Ulangi password</label>
+    <input class="form-control" id="signup-confirm" name="confirm_password" type="password" minlength="12" maxlength="1024" autocomplete="new-password" required>
+    <button class="btn btn-primary mt-4" type="submit">Kirim pendaftaran</button>
+  </form>
+  <p class="mt-4 mb-0">Sudah punya akun? <a href="{{ url_for('login') }}">Sign in</a></p>
+</div>
+{% endblock %}

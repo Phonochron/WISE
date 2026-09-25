@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Laporan hasil{% endblock %}
+{% block content %}
+<div class="page-heading report-heading"><span class="eyebrow">PENGUKURAN OPERASIONAL</span><h1>Laporan hasil</h1><p>Ringkasan dari hasil yang dicatat manual pada satu batch impor. Ini bukan pengukuran dampak kausal WISE AI.</p></div>
+{% if imports %}
+<form class="report-selector" method="get"><label class="form-label" for="import-id">Batch impor</label><select class="form-select" id="import-id" name="import_id">{% for batch in imports %}<option value="{{ batch.id }}" {% if selected.id == batch.id %}selected{% endif %}>#{{ batch.id }}{% if batch.filename is defined %} · {{ batch.filename }}{% endif %} · {{ batch.imported_at }} UTC</option>{% endfor %}</select><button class="btn btn-outline-primary" type="submit">Tampilkan batch</button></form>
+<div class="report-context">Batch #{{ selected.id }} · {{ selected.row_count }} produk · {{ summary.count }} produk memiliki catatan hasil. Hanya catatan terakhir setiap produk yang dihitung; perubahan lama tersimpan pada riwayat detail.</div>
+{% if summary.count %}
+<div class="report-metrics">
+  <div class="card summary-tile"><span>Terjual setelah impor</span><strong>{{ summary.totals.sold_units }}</strong><small>Unit dilaporkan</small></div>
+  <div class="card summary-tile"><span>Didonasikan / dipindahkan</span><strong>{{ summary.totals.donated_units + summary.totals.redistributed_units }}</strong><small>{{ summary.totals.donated_units }} donasi · {{ summary.totals.redistributed_units }} dipindahkan</small></div>
+  <div class="card summary-tile"><span>Terbuang</span><strong class="text-danger">{{ summary.totals.wasted_units }}</strong><small>Unit dilaporkan</small></div>
+  <div class="card summary-tile"><span>Nilai terbuang tercatat</span><strong>Rp {{ "{:,.0f}".format(summary.totals.waste_value) }}</strong><small>Nilai diisi pada {{ summary.coverage.waste_value }} dari {{ summary.count }} produk</small></div>
+</div>
+<p class="report-caveat">Nilai penjualan tercatat: Rp {{ "{:,.0f}".format(summary.totals.revenue_value) }} (diisi pada {{ summary.coverage.revenue_value }} dari {{ summary.count }} produk). Kolom yang kosong tidak dihitung sebagai nilai nol. Status rekomendasi “ditandai selesai”: {{ completed }} tindakan; status ini belum diverifikasi.</p>
+<div class="report-grid">
+  <section class="card detail-panel"><span class="eyebrow">TREN BERDASARKAN TANGGAL HASIL</span><h2>Pergerakan unit</h2><p>Hanya tanggal yang memiliki hasil tercatat pada batch ini.</p><div class="table-responsive"><table class="table"><thead><tr><th>Tanggal</th><th>Terjual</th><th>Donasi</th><th>Dipindahkan</th><th>Terbuang</th></tr></thead><tbody>{% for day in summary.days %}<tr><td>{{ day.date }}</td><td>{{ day.sold_units }}</td><td>{{ day.donated_units }}</td><td>{{ day.redistributed_units }}</td><td>{{ day.wasted_units }}</td></tr>{% endfor %}</tbody></table></div></section>
+  <section class="card detail-panel"><span class="eyebrow">PER CABANG</span><h2>Distribusi hasil</h2><div class="table-responsive"><table class="table"><thead><tr><th>Cabang</th><th>Terjual</th><th>Donasi</th><th>Dipindahkan</th><th>Terbuang</th></tr></thead><tbody>{% for branch in summary.branches %}<tr><td>{{ branch.branch }}</td><td>{{ branch.sold_units }}</td><td>{{ branch.donated_units }}</td><td>{{ branch.redistributed_units }}</td><td>{{ branch.wasted_units }}</td></tr>{% endfor %}</tbody></table></div></section>
+</div>
+<section class="card detail-panel report-records"><span class="eyebrow">CATATAN PRODUK</span><h2>Hasil yang dilaporkan</h2><div class="table-responsive"><table class="table"><thead><tr><th>Produk</th><th>Cabang</th><th>Tanggal</th><th>Terjual</th><th>Donasi</th><th>Dipindahkan</th><th>Terbuang</th></tr></thead><tbody>{% for row in outcomes %}<tr><td><a href="{{ url_for('product_detail', import_id=selected.id, row_number=row.row_number) }}">{{ row.Product_Name }}</a><small class="product-id">{{ row.Product_ID }}</small></td><td>{{ row.Branch }}</td><td>{{ row.outcome_date }}</td><td>{{ row.sold_units }}</td><td>{{ row.donated_units }}</td><td>{{ row.redistributed_units }}</td><td>{{ row.wasted_units }}</td></tr>{% endfor %}</tbody></table></div></section>
+{% else %}<div class="empty-state"><p>Belum ada hasil operasional pada batch ini.</p><a href="{{ url_for('products') }}" class="btn btn-primary">Buka daftar produk aktif</a></div>{% endif %}
+{% else %}<div class="empty-state"><p>Belum ada batch impor. Import data untuk mencatat hasil produk dan melihat tren.</p><a href="{{ url_for('upload') }}" class="btn btn-primary">Import data</a></div>{% endif %}
+{% endblock %}

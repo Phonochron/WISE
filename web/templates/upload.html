@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Upload Data{% endblock %}
+
+{% block content %}
+  <div class="page-heading import-page-heading">
+    <span class="eyebrow">KELOLA DATA</span>
+    <h1>Import data stok</h1>
+    <p>Gunakan CSV atau XLSX untuk memperbarui analisis. Dataset aktif baru berubah setelah file berhasil divalidasi dan diproses.</p>
+  </div>
+
+  {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+  {% if success %}<div class="alert alert-success" role="status">Data berhasil dianalisis dan menjadi dataset aktif. <a href="{{ url_for('dashboard') }}" class="alert-link">Lihat dashboard</a></div>{% endif %}
+
+  <div class="import-layout">
+    <section class="card import-card" aria-labelledby="upload-title">
+      <div class="import-card-heading"><span class="step-number">01</span><div><h2 id="upload-title">Pilih file untuk dianalisis</h2><p>Format CSV atau Excel (.xlsx) · maksimal 10 MB · maksimal 10.000 baris</p></div></div>
+      <form action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data" id="uploadForm">
+        <input type="hidden" name="review_token" value="{{ review_token }}">
+        <label for="data-file" class="form-label">File data stok</label>
+        <div class="file-picker" id="file-picker">
+          <span class="file-picker-icon" aria-hidden="true">
+            <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0-4 4m4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+          </span>
+          <div class="file-picker-copy"><strong>Unggah dataset</strong><span>Pilih file CSV atau XLSX dari perangkat Anda</span></div>
+          <input id="data-file" type="file" name="data_file" class="form-control" accept=".csv,.xlsx" aria-describedby="file-help selected-file" required>
+        </div>
+        <div id="selected-file" class="selected-file" role="status" aria-live="polite">Belum ada file dipilih</div>
+        <div id="file-help" class="form-text">Pilih file dari perangkat Anda. Data saat ini tetap tersedia apabila impor gagal.</div>
+        <div class="import-actions">
+          <button type="submit" class="btn btn-primary">Upload &amp; analisis <span aria-hidden="true">↗</span></button>
+          <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary">Kembali ke dashboard</a>
+        </div>
+      </form>
+    </section>
+
+    <aside class="import-guide" aria-labelledby="guide-title">
+      <span class="eyebrow">SEBELUM MENGUNGGAH</span>
+      <h2 id="guide-title">Siapkan kolom berikut</h2>
+      <p>Gunakan nama kolom yang sama persis dengan dataset contoh.</p>
+      <div class="guide-group"><strong>Identitas produk</strong><p>Product_ID, Product_Name, Branch, Category</p></div>
+      <div class="guide-group"><strong>Input model</strong><p>Initial_Stock, Sold_Quantity, Remaining_Stock, Expiry_Days_Left, Price, Discount_Applied, Temperature_(°C), Historical_Avg_Sales</p></div>
+      <div class="guide-group"><strong>Opsional</strong><p>Waste_Amount untuk ringkasan waste historis.</p></div>
+    </aside>
+  </div>
+
+  <div class="history-heading">
+    <div><span class="eyebrow">AKTIVITAS DATA</span><h2>Riwayat impor</h2><p>Batch terbaru menjadi sumber dashboard dan API data.</p></div>
+    <a href="{{ url_for('export') }}" class="btn btn-outline-primary">Export hasil aktif</a>
+  </div>
+  {% if imports %}
+  <div class="table-responsive history-table-wrap">
+    <table class="table table-hover">
+      <thead><tr><th>Waktu (UTC)</th><th>File</th><th>Jumlah baris</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for item in imports %}
+        <tr>
+          <td>{{ item.imported_at }}</td>
+          <td>{{ item.filename }}</td>
+          <td>{{ item.row_count }}</td>
+          <td><span class="status-chip {% if loop.first %}status-active{% endif %}">{{ 'Aktif' if loop.first else 'Tersimpan' }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state import-empty-state"><span class="empty-state-icon" aria-hidden="true">▤</span><strong>Belum ada riwayat impor</strong><span>Dashboard saat ini menggunakan dataset contoh bawaan.</span></div>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Produk{% endblock %}
+
+{% block content %}
+<div class="page-heading product-page-heading">
+  <span class="eyebrow">DATA PRODUK</span>
+  <h1>Jelajahi produk</h1>
+  <p>Cari produk dan saring berdasarkan cabang, kategori, atau tingkat risiko. Hasil diurutkan dari probabilitas waste tertinggi.</p>
+</div>
+
+<form class="product-filters card" action="{{ url_for('products') }}" method="get" role="search">
+  <div class="filter-field filter-search"><label for="product-query" class="form-label">Cari ID atau nama</label><input id="product-query" name="q" type="search" class="form-control" value="{{ query }}" placeholder="Contoh: PRD001"></div>
+  <div class="filter-field"><label for="branch-filter" class="form-label">Cabang</label><select id="branch-filter" name="branch" class="form-select"><option value="">Semua cabang</option>{% for item in branches %}<option value="{{ item }}" {% if item == branch %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></div>
+  <div class="filter-field"><label for="category-filter" class="form-label">Kategori</label><select id="category-filter" name="category" class="form-select"><option value="">Semua kategori</option>{% for item in categories %}<option value="{{ item }}" {% if item == category %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></div>
+  <div class="filter-field"><label for="risk-filter" class="form-label">Risiko</label><select id="risk-filter" name="risk" class="form-select"><option value="">Semua risiko</option>{% for key, label in risk_labels.items() %}<option value="{{ key }}" {% if key == risk %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+  <label class="attention-filter"><input type="checkbox" name="attention" value="1" {% if attention %}checked{% endif %}> Hanya produk perlu perhatian</label>
+  <div class="filter-actions"><button class="btn btn-primary" type="submit">Terapkan filter</button><a class="btn btn-outline-primary" href="{{ url_for('products') }}">Reset</a></div>
+</form>
+
+<div class="product-results-heading"><div><h2>Hasil produk</h2><p>{{ total }} produk ditemukan · halaman {{ page }} dari {{ pages }}</p></div><span class="product-result-note">Klik nama produk untuk melihat detail dan rekomendasi.</span></div>
+<div class="table-responsive product-table-wrap">
+  <table class="table table-hover align-middle product-table">
+    <thead><tr><th>Produk</th><th>Cabang</th><th>Kategori</th><th>Risiko</th><th>Prob. waste</th><th>Sisa stok</th><th>Sisa hari</th></tr></thead>
+    <tbody>
+      {% for product in products %}
+      <tr>
+        <td><a class="product-name-link" href="{{ url_for('product_detail', import_id=import_id, row_number=product.row_number) }}">{{ product.Product_Name }}</a><span class="product-id">{{ product.Product_ID }}</span></td>
+        <td>{{ product.Branch }}</td><td>{{ product.Category }}</td>
+        <td><span class="badge {% if product.risk_level == 'High' %}bg-danger{% elif product.risk_level == 'Medium' %}bg-warning{% else %}bg-success{% endif %}">{{ risk_labels.get(product.risk_level, product.risk_level) }}</span></td>
+        <td>{{ "%.0f"|format(product.waste_proba * 100) }}%</td><td>{{ product.Remaining_Stock }}</td><td>{{ product.Expiry_Days_Left }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="text-center py-5">Tidak ada produk yang cocok. Ubah kata kunci atau filter Anda.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<nav class="pagination-actions" aria-label="Halaman hasil produk">
+  {% if page > 1 %}<a class="btn btn-outline-primary btn-sm" href="{{ url_for('products', q=query, branch=branch, category=category, risk=risk, attention=1 if attention else 0, page=page-1) }}">← Sebelumnya</a>{% endif %}
+  {% if page < pages %}<a class="btn btn-outline-primary btn-sm" href="{{ url_for('products', q=query, branch=branch, category=category, risk=risk, attention=1 if attention else 0, page=page+1) }}">Berikutnya →</a>{% endif %}
+</nav>
+{% endblock %}

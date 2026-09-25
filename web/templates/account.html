@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Akun saya{% endblock %}
+{% block content %}
+<div class="login-wrap card detail-panel">
+  <span class="eyebrow">PENGATURAN AKUN</span>
+  <h1>Akun saya</h1>
+  <p>Masuk sebagai <strong>{{ g.user.username }}</strong>{% if g.user.role == 'branch' %} · Cabang {{ g.user.branch }}{% else %} · Admin{% endif %}.</p>
+  <h2 class="h5 mt-4">Ganti password</h2>
+  <p>Gunakan password yang mudah Anda ingat dan sulit ditebak orang lain, minimal 12 karakter.</p>
+  {% if saved %}<div class="alert alert-success" role="status">Password berhasil diganti.</div>{% endif %}
+  {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+  <form method="post" action="{{ url_for('account') }}">
+    <input type="hidden" name="review_token" value="{{ review_token }}">
+    <label class="form-label" for="current-password">Password saat ini</label>
+    <input class="form-control" id="current-password" name="current_password" type="password" autocomplete="current-password" required>
+    <label class="form-label mt-3" for="new-password">Password baru</label>
+    <input class="form-control" id="new-password" name="new_password" type="password" minlength="12" maxlength="1024" autocomplete="new-password" required>
+    <label class="form-label mt-3" for="confirm-password">Ulangi password baru</label>
+    <input class="form-control" id="confirm-password" name="confirm_password" type="password" minlength="12" maxlength="1024" autocomplete="new-password" required>
+    <button class="btn btn-primary mt-4" type="submit">Simpan password</button>
+  </form>
+</div>
+{% endblock %}

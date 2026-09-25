@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Pemantauan model{% endblock %}
+{% block content %}
+<div class="page-heading"><span class="eyebrow">KUALITAS MODEL</span><h1>Pemantauan prediksi</h1><p>Bandingkan distribusi skor pada batch impor. Perubahan skor dapat terjadi karena komposisi stok berubah; grafik ini tidak mengukur akurasi model.</p></div>
+<div class="monitor-model-note"><strong>Model saat ini</strong><code>{{ current_sha256[:12] }}</code><span>12 karakter awal SHA-256 artefak model. Batch lama mungkin belum memiliki catatan versi.</span></div>
+{% if batches %}
+<section class="card detail-panel monitor-panel" aria-labelledby="monitor-title">
+  <span class="eyebrow">12 BATCH TERBARU</span><h2 id="monitor-title">Proporsi risiko tinggi</h2>
+  <p>Persentase dihitung dari produk pada tiap batch{% if config.AUTH_REQUIRED and g.user.role == 'branch' %} untuk cabang {{ g.user.branch }}{% endif %}. Bandingkan hanya batch dengan versi model yang sama.</p>
+  <div class="monitor-list">
+  {% for batch in batches %}
+    <div class="monitor-row">
+      <div class="monitor-meta"><strong>Batch #{{ batch.id }}{% if batch.filename is defined %} · {{ batch.filename }}{% endif %}</strong><span>{{ batch.imported_at }} UTC · {{ batch.row_count }} produk</span></div>
+      <div class="monitor-track" role="img" aria-label="{{ '%.1f'|format(batch.high_rate * 100) }} persen risiko tinggi"><div class="monitor-fill" style="width: {{ '%.1f'|format(batch.high_rate * 100) }}%"></div></div>
+      <strong class="monitor-value">{{ '%.1f'|format(batch.high_rate * 100) }}%</strong>
+    </div>
+  {% endfor %}
+  </div>
+</section>
+<section class="card detail-panel monitor-panel"><span class="eyebrow">RINCIAN BATCH</span><h2>Distribusi prediksi</h2><div class="table-responsive"><table class="table"><thead><tr><th>Batch</th><th>Produk</th><th>Skor rata-rata</th><th>Risiko rendah</th><th>Sedang</th><th>Tinggi</th><th>Artefak model</th></tr></thead><tbody>{% for batch in batches %}<tr><td>#{{ batch.id }}</td><td>{{ batch.row_count }}</td><td>{{ '%.1f'|format(batch.average_probability * 100) }}%</td><td>{{ batch.low_count }}</td><td>{{ batch.medium_count }}</td><td>{{ batch.high_count }}</td><td>{% if not batch.model_sha256 %}Belum tercatat{% elif batch.model_sha256 == current_sha256 %}Sama dengan saat ini{% else %}Berbeda{% endif %}</td></tr>{% endfor %}</tbody></table></div></section>
+{% else %}<div class="empty-state"><p>Belum ada batch impor untuk dipantau. Dashboard saat ini dapat memakai dataset contoh, tetapi pemantauan dimulai dari data impor.</p>{% if not config.AUTH_REQUIRED or g.user.role == 'admin' %}<a href="{{ url_for('upload') }}" class="btn btn-primary">Import data</a>{% endif %}</div>{% endif %}
+{% if evaluations is not none %}
+<section class="card detail-panel monitor-panel"><span class="eyebrow">RIWAYAT EVALUASI BERLABEL</span><h2>Metrik dari file terpisah</h2><p>File disediakan operator; independensi dan kualitas label belum diverifikasi aplikasi. Bandingkan hanya evaluasi dengan definisi label dan periode yang setara.</p>
+{% if evaluations %}<div class="table-responsive"><table class="table"><thead><tr><th>Waktu (UTC)</th><th>File</th><th>Sampel</th><th>Positif</th><th>ROC AUC</th><th>Avg. precision</th><th>Brier</th><th>Recall</th><th>Model</th></tr></thead><tbody>{% for item in evaluations %}<tr><td>{{ item.evaluated_at }}</td><td>{{ item.source_name }}</td><td>{{ item.metrics.sample_count }}</td><td>{{ item.metrics.positive_count }}</td><td>{{ '%.3f'|format(item.metrics.roc_auc) }}</td><td>{{ '%.3f'|format(item.metrics.average_precision) }}</td><td>{{ '%.3f'|format(item.metrics.brier_score) }}</td><td>{{ '%.1f'|format(item.metrics.recall * 100) }}%</td><td>{{ 'Saat ini' if item.artifact_sha256 == current_sha256 else 'Berbeda' }}</td></tr>{% endfor %}</tbody></table></div>
+{% else %}<p>Belum ada evaluasi berlabel yang disimpan.</p>{% endif %}
+</section>
+{% endif %}
+<section class="monitor-guidance"><h2>Evaluasi dengan label hasil nyata</h2><p>Jalankan <code>python evaluate_model.py data-evaluasi.csv --save-to-db</code> menggunakan file terpisah yang memiliki kolom <code>Waste_Flag</code> (0 atau 1). Laporan CLI menghitung ROC AUC, average precision, Brier score, precision, recall, F1, confusion matrix, dan kalibrasi. Pastikan data evaluasi tidak dipakai melatih model; aplikasi tidak dapat membuktikan independensi file secara otomatis.</p></section>
+{% endblock %}

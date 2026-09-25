@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Detail Produk{% endblock %}
+
+{% block content %}
+<a class="back-link" href="{{ url_for('products') }}">← Kembali ke daftar produk</a>
+<div class="page-heading product-detail-heading">
+  <span class="eyebrow">DETAIL PRODUK · {{ product.Product_ID }}</span>
+  <h1>{{ product.Product_Name }}</h1>
+  <p>{{ product.Branch }} · {{ product.Category }} · sumber: {{ source_name }}</p>
+</div>
+{% if saved %}<div class="alert alert-success" role="status">Keputusan rekomendasi berhasil dicatat.</div>{% endif %}
+{% if outcome_saved %}<div class="alert alert-success" role="status">Hasil operasional berhasil dicatat.</div>{% endif %}
+{% if outcome_error %}<div class="alert alert-danger" role="alert">{{ outcome_error }}</div>{% endif %}
+
+<div class="product-summary-grid">
+  <div class="card summary-tile"><span>Risiko food waste</span><strong class="{% if product.risk_level == 'High' %}text-danger{% endif %}">{{ risk_labels.get(product.risk_level, product.risk_level) }}</strong><small>Probabilitas {{ "%.1f"|format(product.waste_proba * 100) }}%</small></div>
+  <div class="card summary-tile"><span>Sisa stok</span><strong>{{ product.Remaining_Stock }}</strong><small>Stok awal {{ product.Initial_Stock }} · terjual {{ product.Sold_Quantity }}</small></div>
+  <div class="card summary-tile"><span>Sisa masa berlaku</span><strong>{{ product.Expiry_Days_Left }} hari</strong><small>Harga {{ "%.0f"|format(product.Price) }}</small></div>
+</div>
+
+<div class="product-detail-layout">
+  <section class="card detail-panel" aria-labelledby="recommendations-title">
+    <div class="detail-panel-heading"><span class="eyebrow">TINDAKAN YANG DISARANKAN</span><h2 id="recommendations-title">Tinjau rekomendasi</h2><p>Saran dihasilkan dari aturan awal WISE AI. Perubahan harga, pemindahan stok, dan donasi tidak dijalankan otomatis.</p></div>
+    {% if not can_review %}<div class="alert alert-info">Ini adalah data contoh atau batch lama. Import data terbaru untuk mencatat keputusan pada produk aktif.</div>{% endif %}
+    {% for action in actions %}
+    {% set review = reviews.get(action.key) %}
+    <article class="recommendation-item">
+      <div class="recommendation-top"><div><h3>{{ action.label }}</h3><p>{{ action.description }}</p></div><span class="status-chip {% if review and review.status == 'completed' %}status-active{% endif %}">{{ review_labels.get(review.status, review.status) if review else 'Belum ditinjau' }}</span></div>
+      {% if review and review.note %}<p class="review-note">Catatan terakhir: {{ review.note }}</p>{% endif %}
+      {% if can_review %}
+      <form action="{{ url_for('review_product_action', import_id=import_id, row_number=row_number) }}" method="post" class="review-form">
+        <input type="hidden" name="review_token" value="{{ review_token }}">
+        <input type="hidden" name="action_key" value="{{ action.key }}">
+        <div><label for="status-{{ action.key }}" class="form-label">Keputusan</label><select id="status-{{ action.key }}" class="form-select" name="status" required><option value="">Pilih status</option><option value="approved">Disetujui</option><option value="rejected">Ditolak</option><option value="completed">Ditandai selesai</option></select></div>
+        <div><label for="note-{{ action.key }}" class="form-label">Catatan <span class="optional-label">(wajib jika selesai)</span></label><textarea id="note-{{ action.key }}" class="form-control" name="note" rows="2" maxlength="500" placeholder="Alasan atau hasil peninjauan">{{ review.note if review else '' }}</textarea></div>
+        <button class="btn btn-primary btn-sm" type="submit">Simpan keputusan</button>
+      </form>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </section>
+
+  <aside class="detail-side">
+    <div class="card detail-panel"><span class="eyebrow">DATA INPUT</span><h2>Dasar analisis</h2><dl class="product-facts"><div><dt>Stok awal</dt><dd>{{ product.Initial_Stock }}</dd></div><div><dt>Terjual</dt><dd>{{ product.Sold_Quantity }}</dd></div><div><dt>Sisa stok</dt><dd>{{ product.Remaining_Stock }}</dd></div><div><dt>Sisa hari berlaku</dt><dd>{{ product.Expiry_Days_Left }}</dd></div><div><dt>Harga</dt><dd>{{ "%.0f"|format(product.Price) }}</dd></div><div><dt>Diskon saat ini</dt><dd>{{ product.Discount_Applied }}%</dd></div><div><dt>Suhu</dt><dd>{{ product['Temperature_(°C)'] }}°C</dd></div><div><dt>Rata-rata penjualan</dt><dd>{{ product.Historical_Avg_Sales }}</dd></div></dl></div>
+    <div class="card detail-panel review-history"><span class="eyebrow">RIWAYAT KEPUTUSAN</span><h2>Aktivitas peninjauan</h2>{% if history %}<ol>{% for event in history %}<li><strong>{{ action_labels.get(event.action_key, event.action_key) }} — {{ review_labels.get(event.status, event.status) }}</strong><span>{{ event.changed_at }} UTC</span>{% if event.note %}<p>{{ event.note }}</p>{% endif %}</li>{% endfor %}</ol>{% else %}<p>Belum ada keputusan yang dicatat untuk produk ini.</p>{% endif %}</div>
+  </aside>
+</div>
+
+<section class="card detail-panel outcome-panel" id="hasil-operasional">
+  <span class="eyebrow">HASIL OPERASIONAL</span>
+  <h2>Catat hasil produk</h2>
+  <p>Isi jumlah unit dari sisa stok saat impor (maksimal {{ product.Remaining_Stock }} unit). Angka ini dilaporkan manual dan tidak membuktikan dampak rekomendasi. <a href="{{ url_for('reports', import_id=import_id) if import_id else url_for('reports') }}">Lihat laporan</a>.</p>
+  {% if can_review %}
+  <form class="outcome-form" action="{{ url_for('record_product_outcome', import_id=import_id, row_number=row_number) }}" method="post">
+    <input type="hidden" name="review_token" value="{{ review_token }}">
+    <div><label class="form-label" for="outcome-date">Tanggal hasil</label><input class="form-control" id="outcome-date" name="outcome_date" type="date" value="{{ outcome.outcome_date if outcome else '' }}" required></div>
+    {% for field, label in [('sold_units', 'Terjual'), ('donated_units', 'Didonasikan'), ('redistributed_units', 'Dipindahkan'), ('wasted_units', 'Terbuang')] %}
+    <div><label class="form-label" for="{{ field }}">{{ label }} (unit)</label><input class="form-control" id="{{ field }}" name="{{ field }}" type="number" min="0" max="{{ product.Remaining_Stock }}" step="1" value="{{ outcome[field] if outcome else 0 }}" required></div>
+    {% endfor %}
+    <div><label class="form-label" for="revenue-value">Nilai penjualan (Rp, opsional)</label><input class="form-control" id="revenue-value" name="revenue_value" type="number" min="0" step="0.01" value="{{ outcome.revenue_value if outcome and outcome.revenue_value is not none else '' }}"></div>
+    <div><label class="form-label" for="waste-value">Nilai terbuang (Rp, opsional)</label><input class="form-control" id="waste-value" name="waste_value" type="number" min="0" step="0.01" value="{{ outcome.waste_value if outcome and outcome.waste_value is not none else '' }}"></div>
+    <div class="outcome-note"><label class="form-label" for="outcome-note">Catatan (opsional)</label><textarea class="form-control" id="outcome-note" name="note" maxlength="500" rows="2">{{ outcome.note if outcome else '' }}</textarea></div>
+    <button class="btn btn-primary" type="submit">Simpan hasil</button>
+  </form>
+  {% else %}<p>Hasil pada batch lama hanya dapat dibaca. Catat hasil pada batch aktif.</p>{% endif %}
+  {% if outcome %}<div class="outcome-current"><strong>Catatan saat ini · {{ outcome.outcome_date }}</strong><span>{{ outcome.sold_units }} terjual · {{ outcome.donated_units }} donasi · {{ outcome.redistributed_units }} dipindahkan · {{ outcome.wasted_units }} terbuang</span></div>{% endif %}
+  {% if outcome_history %}<details class="outcome-history"><summary>Riwayat perubahan ({{ outcome_history|length }})</summary><ol>{% for event in outcome_history %}<li>{{ event.recorded_at }} UTC · {{ event.outcome_date }} · {{ event.sold_units }} terjual · {{ event.donated_units }} donasi · {{ event.redistributed_units }} dipindahkan · {{ event.wasted_units }} terbuang{% if event.note %} · {{ event.note }}{% endif %}</li>{% endfor %}</ol></details>{% endif %}
+</section>
+{% endblock %}
