@@ -1,0 +1,14 @@
+.git
+.venv
+.vscode
+.chrome-qa
+__pycache__
+*.py[cod]
+.pytest_cache
+.ipynb_checkpoints
+instance
+notebooks
+tests
+qa-home.png
+.env
+.env.*

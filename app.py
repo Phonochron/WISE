@@ -6,6 +6,7 @@ import os
 import secrets
 import time
 import re
+import ipaddress
 from threading import Lock
 
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -57,6 +58,17 @@ _login_lock = Lock()
 
 def _is_admin() -> bool:
     return not app.config["AUTH_REQUIRED"] or bool(g.user and g.user["role"] == "admin")
+
+
+def _client_rate_key() -> str:
+    """Use Railway's client IP header only when running behind its edge proxy."""
+    if os.getenv("RAILWAY_ENVIRONMENT_ID"):
+        forwarded = request.headers.get("X-Real-IP", "")
+        try:
+            return str(ipaddress.ip_address(forwarded))
+        except ValueError:
+            pass
+    return request.remote_addr or "unknown"
 
 
 def _branch_scope(frame: pd.DataFrame) -> pd.DataFrame:
@@ -134,7 +146,7 @@ def login():
     token = request.form.get("login_token", "")
     if not token or not secrets.compare_digest(token, session.get("login_token", "")):
         abort(400)
-    key = request.remote_addr or "unknown"
+    key = _client_rate_key()
     now = time.monotonic()
     with _login_lock:
         recent = [stamp for stamp in _login_attempts.get(key, []) if now - stamp < 300]
@@ -165,7 +177,7 @@ def signup():
     token = request.form.get("signup_token", "")
     if not token or not secrets.compare_digest(token, session.get("signup_token", "")):
         abort(400)
-    key = "signup:" + (request.remote_addr or "unknown")
+    key = "signup:" + _client_rate_key()
     now = time.monotonic()
     with _login_lock:
         recent = [stamp for stamp in _login_attempts.get(key, []) if now - stamp < 300]

@@ -134,6 +134,8 @@ manage_users.py             CLI pembuatan/perubahan akun operasional
 run_local_admin.py          Menjalankan server lokal dengan login dan kunci sesi persisten
 evaluate_model.py           Evaluasi model pada file berlabel terpisah
 serve.py                    Server WSGI Waitress dengan pemeriksaan konfigurasi
+deploy.py                   Pemeriksaan konfigurasi dan bootstrap admin pada Railway
+Dockerfile                  Image Python/Gunicorn untuk deployment
 web/
   templates/                Template halaman
   static/                   CSS, JavaScript, dan aset gambar
@@ -181,6 +183,27 @@ python serve.py
 Simpan `WISE_SECRET_KEY` di secret manager atau konfigurasi lingkungan yang persisten; nilai harus tetap sama setelah restart agar sesi login tidak terputus. Jangan menaruhnya di repository. `serve.py` menolak berjalan jika autentikasi, kunci sesi persisten, secure cookie, akun, atau konfigurasi tanpa debug belum siap. Secara default Waitress tetap terikat ke `127.0.0.1:5000`; tempatkan reverse proxy HTTPS di depan aplikasi sebelum memberi akses pengguna lain. `WISE_SECURE_COOKIES=true` membuat cookie sesi hanya dikirim browser melalui HTTPS. Endpoint `/health` dapat dipakai sebagai pemeriksaan liveness; log request API dan POST mencatat metode, path, status, dan durasi tanpa isi request.
 
 Mode `python app.py` tetap untuk pengembangan lokal dan, bila `WISE_AUTH_REQUIRED` tidak diatur, tidak memerlukan login. Jangan membuka mode ini ke jaringan publik. Pada mode autentikasi, admin bisa melihat semua cabang dan melakukan impor/ekspor; akun cabang hanya bisa melihat data cabangnya serta mencatat keputusan dan hasil produk pada batch aktif. Periksa hak akses dan data cabang lagi sebelum penggunaan nyata. Database SQLite di `instance/` harus dicadangkan dan dibatasi aksesnya pada sistem operasi.
+
+### Deploy ke Railway
+
+`Dockerfile` menjalankan Flask melalui Gunicorn pada `PORT` yang diberikan Railway. `deploy.py` memastikan autentikasi dan cookie HTTPS aktif, menyimpan SQLite pada volume, serta membuat admin pertama bila database masih baru. Server memakai **satu worker dan satu replika** karena SQLite serta pembatas percobaan login masih lokal pada satu proses. Jangan menjalankan replika tambahan dengan database ini.
+
+1. Hubungkan repository GitHub `Phonochron/WISE` ke satu service Railway. Railway akan memakai `Dockerfile` di akar proyek. Jangan gunakan `python app.py` atau `serve.py` sebagai start command service.
+2. Pasang **persistent volume** pada service dengan mount path `/app/instance`. Volume harus terpasang sebelum proses aplikasi dimulai. Jika tidak ada, startup akan gagal agar akun dan riwayat impor tidak tersimpan di filesystem sementara.
+3. Atur variabel service berikut. Railway menyediakan `PORT` dan `RAILWAY_VOLUME_MOUNT_PATH` secara otomatis.
+
+   | Variabel | Nilai |
+   | --- | --- |
+   | `WISE_AUTH_REQUIRED` | `true` |
+   | `WISE_SECURE_COOKIES` | `true` |
+   | `WISE_SECRET_KEY` | String acak tetap, minimal 32 karakter; simpan sebagai secret dan jangan ubah pada tiap deploy. |
+   | `WISE_BOOTSTRAP_ADMIN_USERNAME` | Username admin pertama; opsional, default `admin`. |
+   | `WISE_BOOTSTRAP_ADMIN_PASSWORD` | Password awal admin, 12–1024 karakter; diperlukan hanya saat belum ada admin. |
+
+4. Deploy service dan atur health check path `/health`. Setelah domain HTTPS Railway aktif, buka `/login` dengan akun admin pertama. **Hapus `WISE_BOOTSTRAP_ADMIN_PASSWORD` dari variabel Railway setelah admin berhasil masuk.** Startup berikutnya tidak akan mengubah password admin yang sudah ada.
+5. Aktifkan backup volume dan uji pemulihan database sebelum memakai data operasional penting. Repo tidak memuat database lokal `instance/wise.db`; deploy pertama dimulai dengan akun admin baru dan tanpa riwayat impor lokal.
+
+Untuk membuat `WISE_SECRET_KEY` di komputer sendiri: `python -c "import secrets; print(secrets.token_urlsafe(48))"`. Salin hasilnya ke variabel Railway tanpa memasukkannya ke Git. Jangan menaruh password admin dalam start command, Dockerfile, atau file `.env` yang di-commit. Biarkan jumlah replika service satu; migrasi ke database server diperlukan sebelum penskalaan horizontal. Perintah build dan pemeriksaan HTTP terakhir tetap perlu diverifikasi pada service Railway yang sebenarnya.
 
 ### Memantau dan mengevaluasi model
 
